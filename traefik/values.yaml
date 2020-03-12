@@ -95,3 +95,12 @@ resources: {}
 affinity: {}
 nodeSelector: {}
 tolerations: []
+
+# tls:
+#   keyvault:
+#     name:
+#     resourceGroup:
+#     subscriptionId
+#     tenantId:
+#     certKeyName:
+#     keyKeyName:

@@ -8,7 +8,7 @@ image:
 #
 deployment:
   # Number of pods of the deployment
-  replicas: 1
+  replicas: 3
 
 additional:
   checkNewVersion: true

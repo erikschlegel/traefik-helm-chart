@@ -83,7 +83,7 @@ dashboard:
   ingressRoute: false
 
 logs:
-  loglevel: WARN
+  loglevel: DEBUG
 #
 resources: {}
   # requests:

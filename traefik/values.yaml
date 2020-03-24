@@ -110,9 +110,9 @@ azureIdentity:
   name: azure-identity
   namespace: ""
   type: 0
-#  resourceId:
+#  resourceID:
 #  name:
-#  clientId:
+#  clientID:
 
 azureIdentityBinding:
   name: "azure-identity-binding"

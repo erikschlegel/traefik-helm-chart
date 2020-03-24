@@ -31,3 +31,19 @@ If release name contains chart name it will be used as a full name.
 {{- end -}}
 {{- end -}}
 {{- end -}}
+
+{{- define "aad-pod-identity.azureidentity.namespace" -}}
+{{- if .Values.azureIdentity.namespace -}}
+{{ .Values.azureIdentity.namespace }}
+{{- else -}}
+{{ .Release.Namespace }}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Common pod identity labels.
+*/}}
+{{- define "aad-pod-identity.labels" -}}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+helm.sh/chart: {{ template "traefik.chart" . }}
+{{- end -}}

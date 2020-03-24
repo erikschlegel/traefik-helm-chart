@@ -4,11 +4,11 @@ This Helm Chart requires extensive testing to ensure expected behavior are met f
 
 ## Test Driven Development
 
-"TDD" practise (Test Driven Development) should be followed when adding a new feature or fixing a bug.
+"TDD" practice (Test Driven Development) should be followed when adding a new feature or fixing a bug.
 
 It means that you are expected to:
 
-1. Start by adding a test describing the expected behaviour, that should fails (either because the bug exists in initial state, or because the new feature had not been implemented),
+1. Start by adding a test describing the expected behavior, that should fails (either because the bug exists in initial state, or because the new feature had not been implemented),
 2. Then, change the code according to your intent (fixing a bug, adding a feature or refactoring),
 3. Finally, the test suite (including the new test you added earlier) must pass.
 
@@ -35,4 +35,4 @@ The static test suite is implemented with the tool [`ct` (Chart Testing)](https:
 - The Docker image of `ct` is used to ensure all sub-dependencies (helm, kubectl, yamale, etc.) are met for an easier experience for contributor.
 - All configuration of `ct` and linters are stored in the directory `lint/`. In particular, the file `lint/ct.yaml` contains
 the `ct` configuration.
-- Version Increment Check is done against the against the original repository, with the branch `master`. This repository is added as an additional git remote named `traefik` by the make target `lint`. If you wish to temporarly change this behavior, please edit the files `Makefile` and `lint/ct.yaml`.
+- Version Increment Check is done against the against the original repository, with the branch `master`. This repository is added as an additional git remote named `traefik` by the make target `lint`. If you wish to temporarily change this behavior, please edit the files `Makefile` and `lint/ct.yaml`.

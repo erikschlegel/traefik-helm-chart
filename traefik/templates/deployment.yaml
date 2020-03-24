@@ -107,7 +107,7 @@ spec:
             keyvaultobjectname: "{{ .Values.tls.keyvault.certKeyName }};{{ .Values.tls.keyvault.keyKeyName }}"
             keyvaultobjecttype: "secret;secret"
             tenantid: "{{ .Values.tls.keyvault.tenantId }}"
-            usepodidentity: "false"
+            usepodidentity: "{{ .Values.tls.keyvault.usePodIdentity }}"
             resourcegroup: "{{ .Values.tls.keyvault.resourceGroup }}"
             subscriptionid: "{{ .Values.tls.keyvault.subscriptionId }}"
       {{- end }}

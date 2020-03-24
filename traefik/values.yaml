@@ -96,11 +96,24 @@ affinity: {}
 nodeSelector: {}
 tolerations: []
 
-# tls:
-#   keyvault:
-#     name:
+tls:
+  keyvault:
+    usePodIdentity: false
 #     resourceGroup:
 #     subscriptionId
 #     tenantId:
 #     certKeyName:
 #     keyKeyName:
+
+azureIdentity:
+  enabled: true
+  name: azure-identity
+  namespace: ""
+  type: 0
+#  resourceId:
+#  name:
+#  clientId:
+
+azureIdentityBinding:
+  name: "azure-identity-binding"
+  selector: "azure-identity-selector"

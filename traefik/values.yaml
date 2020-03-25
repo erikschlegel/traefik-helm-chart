@@ -104,9 +104,10 @@ tls:
 #     tenantId:
 #     certKeyName:
 #     keyKeyName:
+#     name
 
 azureIdentity:
-  enabled: true
+  enabled: false
   name: azure-identity
   namespace: ""
   type: 0

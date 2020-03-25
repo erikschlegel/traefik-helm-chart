@@ -26,6 +26,9 @@ spec:
         chart: {{ template "traefik.chart" . }}
         release: {{ .Release.Name | quote }}
         heritage: {{ .Release.Service | quote }}
+        {{- if .Values.tls.keyvault }}
+        aadpodidbinding: {{ .Values.azureIdentityBinding.selector }}
+        {{- end }}
     spec:
       serviceAccountName: {{ template "traefik.fullname" . }}
       terminationGracePeriodSeconds: 60

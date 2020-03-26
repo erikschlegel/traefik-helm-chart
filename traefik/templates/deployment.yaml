@@ -113,6 +113,9 @@ spec:
             usepodidentity: "{{ .Values.tls.keyvault.usePodIdentity }}"
             resourcegroup: "{{ .Values.tls.keyvault.resourceGroup }}"
             subscriptionid: "{{ .Values.tls.keyvault.subscriptionId }}"
+            vmmanagedidentityclientid: "{{ .Values.tls.keyvault.vmManagedIdentityClientid }}"
+            usevmmanagedidentity: "{{ .Values.tls.keyvault.useVmManagedIdentity }}"
+
       {{- end }}
       {{- with .Values.affinity }}
       affinity:

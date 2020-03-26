@@ -99,12 +99,15 @@ tolerations: []
 tls:
   keyvault:
     usePodIdentity: false
+    useVmManagedIdentity: false
+    vmManagedIdentityClientid: ""
 #     resourceGroup:
 #     subscriptionId
 #     tenantId:
 #     certKeyName:
 #     keyKeyName:
 #     name
+#     useVmManagedIdentity
 
 azureIdentity:
   enabled: false

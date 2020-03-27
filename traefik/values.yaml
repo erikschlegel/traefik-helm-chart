@@ -109,15 +109,5 @@ tls:
 #     name
 #     useVmManagedIdentity
 
-azureIdentity:
-  enabled: false
-  name: azure-identity
-  namespace: ""
-  type: 0
-#  resourceID:
-#  name:
-#  clientID:
-
 azureIdentityBinding:
-  name: "azure-identity-binding"
   selector: "azure-identity-selector"

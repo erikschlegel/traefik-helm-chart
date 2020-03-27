@@ -1,43 +1,81 @@
 # Default values for Traefik
 image:
   name: traefik
-  tag: 2.1.3
+  tag: 2.2.0
 
 #
 # Configure the deployment
 #
 deployment:
+  enabled: true
   # Number of pods of the deployment
-  replicas: 3
+  replicas: 1
+  # Addtional deployment annotations (e.g. for jaeger-operator sidecar injection)
+  annotations: {}
+  # Additional pod annotations (e.g. for mesh injection or prometheus scraping)
+  podAnnotations: {}
 
-additional:
-  checkNewVersion: true
-  sendAnonymousUsage: true
+# Create an IngressRoute for the dashboard
+ingressRoute:
+  dashboard:
+    enabled: true
 
 rollingUpdate:
   maxUnavailable: 1
   maxSurge: 1
 
 #
-# Configure Traefik entry points
+# Add volumes to the traefik pod.
+# This can be used to mount a cert pair or a configmap that holds a config.toml file.
+# After the volume has been mounted, add the configs into traefik by using the `additionalArguments` list below, eg:
+# additionalArguments:
+# - "--providers.file.filename=/config/dynamic.toml"
+# - "--tls.certificates.certFile=/certs/tls.crt"
+# - "--tls.certificates.keyFile=/certs/tls.key"
+volumes: []
+# - name: public-cert
+#   mountPath: "/certs"
+#   type: secret
+# - name: configs
+#   mountPath: "/config"
+#   type: configMap
+
+globalArguments:
+  - "--global.checknewversion"
+  - "--global.sendanonymoususage"
+
+#
+# Configure Traefik static configuration
 # Additional arguments to be passed at Traefik's binary
-## Use curly braces to pass values: `helm install --set="{--providers.kubernetesingress,--global.checknewversion=true}" ."
+# All available options available on https://docs.traefik.io/reference/static-configuration/cli/
+## Use curly braces to pass values: `helm install --set="additionalArguments={--providers.kubernetesingress,--global.checknewversion=true}"`
 additionalArguments: []
 #  - "--providers.kubernetesingress"
 
 # Environment variables to be passed to Traefik's binary
-env: {}
-#  - name: SOME_VAR
-#    value: some-var-value
-#  - name: SOME_OTHER_VAR
-#    value: some-other-var-value
+env: []
+# - name: SOME_VAR
+#   value: some-var-value
+# - name: SOME_VAR_FROM_CONFIG_MAP
+#   valueFrom:
+#     configMapRef:
+#       name: configmap-name
+#       key: config-key
+# - name: SOME_SECRET
+#   valueFrom:
+#     secretKeyRef:
+#       name: secret-name
+#       key: secret-key
 
-#
+# Configure ports
 ports:
   # The name of this one can't be changed as it is used for the readiness and
   # liveness probes, but you can adjust its config to your liking
   traefik:
     port: 9000
+    # Use hostPort if set.
+    # hostPort: 9000
+
     # Defines whether the port is exposed if service.type is LoadBalancer or
     # NodePort.
     #
@@ -49,6 +87,7 @@ ports:
     exposedPort: 9000
   web:
     port: 8000
+    # hostPort: 8000
     expose: true
     exposedPort: 80
     # Use nodeport if set. This is useful if you have configured Traefik in a
@@ -56,13 +95,15 @@ ports:
     # nodePort: 32080
   websecure:
     port: 8443
+    # hostPort: 8443
     expose: true
     exposedPort: 443
-  # nodePort: 32443
+    # nodePort: 32443
 
 # Options for the main traefik service, where the entrypoints traffic comes
 # from.
 service:
+  enabled: true
   type: LoadBalancer
   # Additional annotations (e.g. for cloud provider specific config)
   annotations: {}
@@ -72,19 +113,49 @@ service:
     # externalTrafficPolicy: Cluster
     # loadBalancerIP: "1.2.3.4"
     # clusterIP: "2.3.4.5"
+  loadBalancerSourceRanges: []
+    # - 192.168.0.1/32
+    # - 172.16.0.0/16
 
-dashboard:
-  # Enable the dashboard on Traefik
-  enable: true
+## Create HorizontalPodAutoscaler object.
+##
+autoscaling:
+  enabled: false
+#   minReplicas: 1
+#   maxReplicas: 10
+#   metrics:
+#   - type: Resource
+#     resource:
+#       name: cpu
+#       targetAverageUtilization: 60
+#   - type: Resource
+#     resource:
+#       name: memory
+#       targetAverageUtilization: 60
 
-  # Expose the dashboard and api through an ingress route at /dashboard
-  # and /api This is not secure and SHOULD NOT be enabled on production
-  # deployments
-  ingressRoute: false
+# Enable persistence using Persistent Volume Claims
+# ref: http://kubernetes.io/docs/user-guide/persistent-volumes/
+# After the pvc has been mounted, add the configs into traefik by using the `additionalArguments` list below, eg:
+# additionalArguments:
+# - "--certificatesresolvers.le.acme.storage=/data/acme.json"
+# It will persist TLS certificates.
+persistence:
+  enabled: false
+  accessMode: ReadWriteOnce
+  size: 128Mi
+  # storageClass: ""
+  path: /data
+  annotations: {}
 
-logs:
-  loglevel: DEBUG
-#
+# If hostNetwork is true, runs traefik in the host network namespace
+# To prevent unschedulabel pods due to port collisions, if hostNetwork=true
+# and replicas>1, a pod anti-affinity is recommended and will be set if the
+# affinity is left as default.
+hostNetwork: false
+
+# Additional serviceAccount annotations (e.g. for oidc authentication)
+serviceAccountAnnotations: {}
+
 resources: {}
   # requests:
   #   cpu: "100m"
@@ -93,6 +164,18 @@ resources: {}
   #   cpu: "300m"
   #   memory: "150Mi"
 affinity: {}
+# # This example pod anti-affinity forces the scheduler to put traefik pods
+# # on nodes where no other traefik pods are scheduled.
+# # It should be used when hostNetwork: true to prevent port conflicts
+#   podAntiAffinity:
+#     requiredDuringSchedulingIgnoredDuringExecution:
+#     - labelSelector:
+#         matchExpressions:
+#         - key: app
+#           operator: In
+#           values:
+#           - {{ template "traefik.name" . }}
+#       topologyKey: failure-domain.beta.kubernetes.io/zone
 nodeSelector: {}
 tolerations: []
 

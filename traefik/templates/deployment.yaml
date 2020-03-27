@@ -1,3 +1,15 @@
+{{- if .Values.deployment.enabled -}}
+  {{- if gt (int .Values.deployment.replicas) 1 -}}
+    {{- with .Values.additionalArguments -}}
+      {{- range . -}}
+        {{- if contains ".acme." . -}}
+          {{- fail (printf "You can not enabled acme if you set more than one traefik replica") -}}
+        {{- end -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -7,8 +19,16 @@ metadata:
     chart: {{ template "traefik.chart" . }}
     release: {{ .Release.Name | quote }}
     heritage: {{ .Release.Service | quote }}
+  {{- if .Values.deployment.annotations }}
+  annotations:
+  {{- range $key, $value := .Values.deployment.annotations }}
+    {{ $key | quote }}: {{ $value | quote }}
+  {{- end }}
+  {{- end }}
 spec:
+  {{- if not .Values.autoscaling.enabled }}
   replicas: {{ default 1 .Values.deployment.replicas }}
+  {{- end }}
   selector:
     matchLabels:
       app: {{ template "traefik.name" . }}
@@ -21,6 +41,12 @@ spec:
       {{- end }}
   template:
     metadata:
+      {{- if .Values.deployment.podAnnotations }}
+      annotations:
+      {{- range $key, $value := .Values.deployment.podAnnotations }}
+        {{ $key }}: {{ $value | quote }}
+      {{- end }}
+      {{- end }}
       labels:
         app: {{ template "traefik.name" . }}
         chart: {{ template "traefik.chart" . }}
@@ -32,6 +58,7 @@ spec:
     spec:
       serviceAccountName: {{ template "traefik.fullname" . }}
       terminationGracePeriodSeconds: 60
+      hostNetwork: {{ .Values.hostNetwork }}
       containers:
       - image: {{ .Values.image.name }}:{{ .Values.image.tag }}
         name: {{ template "traefik.fullname" . }}
@@ -69,23 +96,31 @@ spec:
         {{- range $name, $config := .Values.ports }}
         - name: {{ $name | quote }}
           containerPort: {{ $config.port }}
+          {{- if $config.hostPort }}
+          hostPort: {{ $config.hostPort }}
+          {{- end }}
           protocol: TCP
         {{- end }}
+        volumeMounts:
+          - name: data
+            mountPath: {{ .Values.persistence.path }}
+          {{- range .Values.volumes }}
+          - name: {{ .name }}
+            mountPath: {{ .mountPath }}
+            readOnly: true
+          {{- end }}
         args:
-          - "--global.checknewversion={{ .Values.additional.checkNewVersion }}"
-          - "--global.sendanonymoususage={{ .Values.additional.sendAnonymousUsage}}"
+          {{- with .Values.globalArguments }}
+          {{- range . }}
+          - {{ . | quote }}
+          {{- end }}
+          {{- end }}
           {{- range $name, $config := .Values.ports }}
           - "--entryPoints.{{$name}}.address=:{{ $config.port }}"
           {{- end }}
-          - "--api.dashboard={{ .Values.dashboard.enable }}"
+          - "--api.dashboard=true"
           - "--ping=true"
           - "--providers.kubernetescrd"
-          - "--log.level={{ .Values.logs.loglevel }}"
-          {{- if .Values.tls }}
-          - "--entrypoints.web-secure.address=:443"
-          - "--providers.file.directory=/configuration/"
-          - "--providers.file.watch=true"
-          {{- end}}
           {{- with .Values.additionalArguments }}
           {{- range . }}
           - {{ . | quote }}
@@ -96,25 +131,38 @@ spec:
           {{- toYaml . | nindent 10 }}
         {{- end }}
       volumes:
-      - name: configuration
-        configMap:
-          name: traefik-configuration
-      {{- if .Values.tls.keyvault }}
-      - name: certs
-        flexVolume:
-          driver: "azure/kv"
-          options:
-            keyvaultname: "{{ .Values.tls.keyvault.name }}"
-            keyvaultobjectname: "{{ .Values.tls.keyvault.certKeyName }};{{ .Values.tls.keyvault.keyKeyName }}"
-            keyvaultobjecttype: "secret;secret"
-            tenantid: "{{ .Values.tls.keyvault.tenantId }}"
-            usepodidentity: "{{ .Values.tls.keyvault.usePodIdentity }}"
-            resourcegroup: "{{ .Values.tls.keyvault.resourceGroup }}"
-            subscriptionid: "{{ .Values.tls.keyvault.subscriptionId }}"
-            vmmanagedidentityclientid: "{{ .Values.tls.keyvault.vmManagedIdentityClientid }}"
-            usevmmanagedidentity: "{{ .Values.tls.keyvault.useVmManagedIdentity }}"
-
-      {{- end }}
+        {{- if .Values.tls.keyvault }}
+        - name: certs
+          flexVolume:
+           driver: "azure/kv"
+           options:
+             keyvaultname: "{{ .Values.tls.keyvault.name }}"
+             keyvaultobjectname: "{{ .Values.tls.keyvault.certKeyName }};{{ .Values.tls.keyvault.keyKeyName }}"
+             keyvaultobjecttype: "secret;secret"
+             tenantid: "{{ .Values.tls.keyvault.tenantId }}"
+             usepodidentity: "{{ .Values.tls.keyvault.usePodIdentity }}"
+             resourcegroup: "{{ .Values.tls.keyvault.resourceGroup }}"
+             subscriptionid: "{{ .Values.tls.keyvault.subscriptionId }}"
+             vmmanagedidentityclientid: "{{ .Values.tls.keyvault.vmManagedIdentityClientid }}"
+             usevmmanagedidentity: "{{ .Values.tls.keyvault.useVmManagedIdentity }}"
+        {{- end }}
+        - name: data
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ template "traefik.fullname" . }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        {{- range .Values.volumes }}
+        - name: {{ .name }}
+          {{- if eq .type "secret" }}
+          secret:
+            secretName: {{ .name }}
+          {{- else if eq .type "configMap" }}
+          configMap:
+            name: {{ .name }}
+          {{- end }}
+        {{- end }}
       {{- with .Values.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
@@ -127,3 +175,5 @@ spec:
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+
+{{- end -}}
